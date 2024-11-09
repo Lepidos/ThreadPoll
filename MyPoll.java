@@ -20,14 +20,11 @@ public class MyPoll {
 		this.pollLock = new ReentrantLock();
 		this.pollQueue = new LinkedList<>();
 		this.nextTicket = nextTurn = 0;
-		this.maxThreads = 1;
+		this.maxThreads = 8;		//LIMITE DA POLL
 		this.threadPollMap = new HashMap<>();
 
 	}
 
-//	public int getNextTurn() {
-//		return this.nextTurn;
-//	}
 
 	public Thread getThread(int ticket) {
 		return this.threadPollMap.get(ticket);
@@ -78,10 +75,9 @@ public class MyPoll {
 				public void run() {
 					try {
 						System.out.println("Thread "  + String.valueOf(ticket) + " has started...");
-						poll.finishRequest(ticket);			// GIVE PLACE TO NEXT IN QUEUE
+						poll.finishRequest(ticket);			// DAR LUGAR AO PROXIMO NA FILA
 					} catch (InterruptedException e) {
 						Thread.currentThread().interrupt();
-//						continue;
 
 					}
 				}
@@ -90,11 +86,6 @@ public class MyPoll {
 
 		}
 //		I DON'T KNOW WHERE TO PUT JOIN()
-//		try {
-//			poll.getThread(ticket).join();
-//		} catch (InterruptedException e) {
-//			Thread.currentThread().interrupt();
-//		}
         }
 }
 
