@@ -1,12 +1,20 @@
+import java.util.Queue;
+import java.lang.Thread;
+import java.util.HashMap;
+import java.io.IOException;
+import java.util.LinkedList;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
-private Class MyPoll {
+public class MyPoll {
 
 	private Lock pollLock;
 	private Queue<Condition> pollQueue;
 	private int nextTicket;
 	private int nextTurn;
 	private int maxThreads;
-	private HashMap<int,Thread> threadPollMap;
+	private HashMap<Integer,Thread> threadPollMap;
 
 	private MyPoll() {
 		this.pollLock = new ReentrantLock();
@@ -16,10 +24,20 @@ private Class MyPoll {
 		this.threadPollMap = new HashMap<>();
 
 	}
-	public Thread getThreadNumber(int number)
-		return this.threadPollMap.get(number);
 
-	public int newRequest(String name) throws InterruptedException {
+//	public int getNextTurn() {
+//		return this.nextTurn;
+//	}
+
+	public Thread getThread(int ticket) {
+		return this.threadPollMap.get(ticket);
+	}
+
+	public void registerThread(int ticket, Thread t) {
+		this.threadPollMap.put(ticket, t);
+	}
+
+	public int newRequest() throws InterruptedException {
 		pollLock.unlock();
 		var ticket = nextTicket++;
 		if (ticket>nextTurn) {
@@ -29,46 +47,55 @@ private Class MyPoll {
 				c.await();
 			while (ticket>nextTurn);
 		}
-		threadPollMap.put(ticket, NULL);
+// MAYBE ADD TO MAP HERE, BUT THREAD WASN'T DECLARED, BY PASSING IT TO THE FUNCTION
 		pollLock.unlock();
 		return ticket;
 	}
 
-	public void finishRequest(int threadNumber) {	//TALVEZ THREAD.JOIN() SEJA AQUI
+	public void finishRequest(int ticket) throws InterruptedException {			//TALVEZ THREAD.JOIN() SEJA AQUI
 		pollLock.unlock();
-		threadPollMapp.remove(threadNumber);
+		this.threadPollMap.remove(ticket);  		//TALVEZ ISTO SEJA FORA DAQUI
 		nextTurn++;
 		var c = pollQueue.remove();
 		if (c != null)
 			c.signal();
 		pollLock.unlock();
+		this.getThread(ticket).join();
 	}
 
 
-	public static void main(String[] args) throws InterruptedException {
-		MyPoll threadPoll = new MyPoll();
-		int numThreads = 0;
+	public static void main(String[] args) throws InterruptedException {		// FOR TEST PURPOSES
+		MyPoll poll = new MyPoll();
 		for (int i = 0; i < 20; i++) {
-			numThreads = threadPoll.newRequest();		// ASK FOR A TICKET
-			this.threadPoolMap.put(numThreads,new Thread(new Runnable() {	// RUN JOB
+			final int ticket;
+			try {
+				ticket = poll.newRequest();				// ASK FOR A TICKET
+			} catch (InterruptedException e) {
+				continue;
+			}
+			poll.registerThread(ticket ,new Thread(new Runnable() {	// INITIALIZE THREAD AND ADD IT TO MAP
 				@Override
 				public void run() {
 					try {
-						System.out.println("Thread " + (Thread.currentThread().getId() + 1) + " has started...");
-					catch (InterruptedException e) {
+						System.out.println("Thread "  + String.valueOf(ticket) + " has started...");
+						poll.finishRequest(ticket);			// GIVE PLACE TO NEXT IN QUEUE
+					} catch (InterruptedException e) {
 						Thread.currentThread().interrupt();
+//						continue;
+
 					}
-					threadPoll.finishRequest();		// GIVE PLACE TO NEXT IN QUEUE
 				}
 			}));
-        	    t.start();
+			poll.getThread(ticket).start();
+
 		}
-		try {
-			t.join();
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-		}
+//		I DON'T KNOW WHERE TO PUT JOIN()
+//		try {
+//			poll.getThread(ticket).join();
+//		} catch (InterruptedException e) {
+//			Thread.currentThread().interrupt();
+//		}
         }
-    }
 }
-}
+
+
